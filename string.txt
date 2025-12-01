@@ -1,0 +1,428 @@
+1) Creation & basics
+
+
+// literal
+const s1 = "hello";
+const s2 = 'world';
+const s3 = `template ${s1}`;        // template literal, interpolation
+
+// constructor (rare)
+const sObj = new String("hi");      // object wrapper — avoid unless needed
+
+// from code points
+String.fromCharCode(65,66)         // "AB"  (UTF-16 code units)
+String.fromCodePoint(0x1F600)      // "😀"  (unicode code point)
+
+
+Properties:
+
+s1.length            // number of UTF-16 code units (not grapheme clusters / human characters)
+s1[0]                // 'h'  (read-only)
+s1.charAt(0)        
+
+
+Important concept: code units vs code points vs grapheme clusters.
+length counts UTF-16 code units. Some emoji / characters use two code units (surrogate pairs).
+Use Array.from(s) or spread [...s] to iterate by code points. For true grapheme clusters (user-perceived characters like "🇺🇸" or "é") you need a library like grapheme-splitter or Intl.Segmenter.
+
+
+/***************************************************************************************************************/
+2) Common string methods (syntax + example)
+
+I'll group methods by purpose. Examples use modern JS (Node 16+ / browsers).
+
+Access & inspection
+const s = "Hello, world!";
+
+s.charAt(1)         // "e"
+s.charCodeAt(1)     // 101   (code unit)
+s.codePointAt(0)    // 72    (code point for 'H')
+s[7]                // 'w'
+s.at(-1)            // '!'   (ES2022: negative indices)
+
+Transformations / Case
+s.toUpperCase()     // "HELLO, WORLD!"
+s.toLowerCase()     // "hello, world!"
+s.toLocaleUpperCase('tr') // locale aware (Turkish dotted i)
+s.toLocaleLowerCase()
+
+Substrings / slicing
+s.slice(7, 12)      // "world"
+s.substring(7, 12)  // "world" (works similar to slice, but different with negative indices)
+s.substr(7, 5)      // "world" (deprecated — avoid)
+
+
+Notes:
+
+slice supports negative indexes. substring swaps arguments if start > end. Prefer slice.
+
+Trim / pad
+"  hi  ".trim()         // "hi"
+"  hi  ".trimStart()    // "hi  "
+"  hi  ".trimEnd()      // "  hi"
+"5".padStart(3, "0")    // "005"
+"1".padEnd(4, "!")      // "1!!!"
+
+Repeat & concat
+"ha".repeat(3)          // "hahaha"
+"a".concat("b", "c")    // "abc" — prefer template or + operator
+
+Search & contain
+s.includes("world")     // true
+s.indexOf("l")          // 2  (first)
+s.lastIndexOf("l")      // 10 (last)
+s.startsWith("Hello")   // true
+s.endsWith("!")         // true
+
+split & join
+"1,2,3".split(",")      // ['1','2','3']
+["a","b"].join("-")     // "a-b"
+
+replace, replaceAll, regex
+"foo bar foo".replace("foo", "baz")        // "baz bar foo"  (only first)
+"foo bar foo".replaceAll("foo", "baz")     // "baz bar baz"  (ES2021)
+
+"hello 123".replace(/\d+/g, "<n>")         // "hello <n>"
+"abc".replace(/(a)(b)(c)/, (_, a,b,c) => `${c}${b}${a}`)
+// "cba"
+
+/***************************************************************************************************************/
+Notes:
+
+replaceAll accepts a plain string or a global regex. For older runtimes, use replace with /.../g.
+
+When using regex replace callback, named groups and capture groups are supported.
+
+match / matchAll / search
+"abc1abc2".match(/\d+/g)            // ['1','2']
+[... "a1b2".matchAll(/(\d)/g)]      // iterable of match objects with groups
+"abc".search(/\d/)                  // -1 if not found, else index
+
+split with regex and limits
+"foo,bar;baz".split(/[,;]/)         // ['foo','bar','baz']
+"1,2,3,4".split(",", 2)             // ['1','2']
+
+localeCompare
+"a".localeCompare("b")              // negative (a < b)
+"a".localeCompare("A", "en", {sensitivity: "base"})
+
+
+Useful for sorting with locale rules.
+
+normalize (Unicode normalization)
+"e\u0301" === "é"                  // false
+"e\u0301".normalize('NFC') === "é".normalize('NFC') // true
+
+
+Use when comparing or storing Unicode text.
+
+toString & valueOf
+const sObj = new String("x");
+sObj.toString();  // "x"
+sObj.valueOf();   // "x"
+
+Template literals & tagged templates
+const a = 1, b = 2;
+`sum: ${a + b}`        // "sum: 3"
+
+// tagged template
+function tag(strings, ...values) {
+  // strings: array of literal parts, values: interpolated values
+  return strings[0] + values.map((v,i) => `${v}${strings[i+1]}`).join('');
+}
+tag`Hello ${name}!`     // call tag with parts
+
+
+Tagged templates are powerful for safe HTML, i18n, and SQL builders.
+/***************************************************************************************************************/
+3) Encoding, buffers, and Node specifics
+
+MERN back-end needs encoding awareness.
+
+TextEncoder / TextDecoder (Web & Node 11+)
+const enc = new TextEncoder();
+const bytes = enc.encode("hello");      // Uint8Array (utf-8)
+
+const dec = new TextDecoder("utf-8");
+dec.decode(bytes);                      // "hello"
+
+Node Buffer conversions
+const buf = Buffer.from("héllo", "utf8");
+buf.toString("utf8");                   // "héllo"
+Buffer.from([0xF0,0x9F,0x98,0x80]).toString() // "😀"
+
+Base64
+Buffer.from("hello").toString("base64")       // "aGVsbG8="
+Buffer.from("aGVsbG8=", "base64").toString()  // "hello"
+
+Encoding considerations
+
+Always be explicit about encoding in I/O (files, DB, HTTP). Prefer UTF-8.
+
+For binary-safe operations, use Buffer or Uint8Array.
+/***************************************************************************************************************/
+4) Advanced / Developer-level concepts
+Immutability & performance
+
+Strings are immutable; operations create new strings. In tight loops or very large strings prefer Array joins or Buffer for building results.
+
+For heavy concatenation server-side, use array push + array.join('') or streams.
+
+Unicode gotchas
+
+length != visible characters for emoji or composed characters.
+
+Use Array.from(str) or spread operator to iterate code points: [...str].
+
+Normalization: store and compare with normalized forms (NFC recommended).
+
+To slice by code points (not code units), use:
+
+function sliceByCodePoints(s, start, end) {
+  return [...s].slice(start, end).join('');
+}
+/***************************************************************************************************************/
+Grapheme clusters
+
+For correct user-facing character operations (cursor movement, substring for UI), use Intl.Segmenter (modern) or grapheme-splitter lib.
+
+Regex flags & modern features
+
+u (unicode), s (dotAll), y (sticky), g (global), i (ignoreCase)
+
+Lookbehind assertions: (?<=...) and (?<!...) (supported in modern Node)
+
+Named capture groups: /(?<year>\d{4})-(?<m>\d{2})/
+
+String.prototype.matchAll() for full match objects with groups.
+
+Security: XSS, injection, ReDoS
+
+Always escape user input before injecting into HTML — in React this is automatic in JSX (unless using dangerouslySetInnerHTML).
+
+Escape/validate before building queries. For SQL use parameterized queries; for Mongo, avoid passing raw user input into query objects that might change query semantics (NoSQL injection).
+
+Beware of ReDoS: untrusted regex like /(a+)+$/ on long malicious input can hang event loop. Use timeouts, safe regexes, or limit input length.
+
+Internationalization (i18n)
+
+Use Intl.Collator / localeCompare for sorting and Intl.DateTimeFormat for dates. Case conversions with toLocaleLowerCase for locale-aware behavior.
+
+For pluralization and translation use established libs (i18next, FormatJS).
+/***************************************************************************************************************/
+5) MongoDB / Mongoose string handling (MERN specifics)
+Collation & case insensitive queries
+
+Mongo supports collation for locale-aware comparisons and case/diacritic sensitivity.
+
+// find case-insensitive using collation
+db.collection.find({ name: "john" }).collation({ locale: "en", strength: 2 })
+
+
+In Mongoose:
+
+MyModel.find({ name: 'john' }).collation({ locale: 'en', strength: 2 });
+
+Text indexes & search
+
+Use text index for searching words, not arbitrary substring.
+
+db.users.createIndex({ bio: "text" });
+// query
+db.users.find({ $text: { $search: "developer" } });
+
+Aggregation string ops
+
+Operators: $toLower, $toUpper, $substrCP, $strLenCP, $indexOfBytes, $split, etc. Useful in aggregation pipelines for transformations and case-insensitive grouping.
+
+Schema types & validation
+
+Mongoose String type allows trim, lowercase, uppercase and match validators:
+
+new Schema({
+  email: { type: String, required: true, lowercase: true, trim: true, match: /.../ }
+});
+
+6) React & front-end concerns
+
+JSX automatically escapes values inserted into DOM. Avoid dangerouslySetInnerHTML unless sanitized.
+
+Use value and controlled components to manipulate strings.
+
+For performance: avoid creating many new strings in render loops; memoize computed strings with useMemo when heavy.
+
+For user input normalization (phone / email), sanitize/normalize on both client and server.
+
+7) Useful utility helpers
+// safe truncation by code points
+function truncate(s, maxLen) {
+  return [...s].slice(0, maxLen).join('');
+}
+
+// capitalize
+const capitalize = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+
+// slugify (simple)
+const slug = s => s.toLowerCase().normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '') // remove diacritics
+  .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+8) Testing strings (Jest examples)
+test('truncate', () => {
+  expect(truncate('😀😀😀', 2)).toBe('😀😀');
+});
+
+test('slug', () => {
+  expect(slug("Café au lait")).toBe("cafe-au-lait");
+});
+
+9) Reference: FULL method list (ECMAScript standard String prototype)
+
+I'll list the most commonly available prototype methods and static helpers:
+
+Prototype methods:
+
+charAt, charCodeAt, codePointAt
+
+concat
+
+includes
+
+endsWith
+
+startsWith
+
+indexOf, lastIndexOf
+
+localeCompare
+
+match, matchAll
+
+normalize
+
+repeat
+
+replace, replaceAll
+
+search
+
+slice
+
+split
+
+substr (deprecated)
+
+substring
+
+toLocaleLowerCase, toLocaleUpperCase
+
+toLowerCase, toUpperCase
+
+trim, trimStart, trimEnd
+
+padStart, padEnd
+
+valueOf, toString
+
+at (ES2022)
+
+trimLeft, trimRight (aliases to trimStart/trimEnd in some engines)
+
+Static / global helpers:
+
+String.fromCharCode, String.fromCodePoint
+
+String.raw (tag for raw template strings)
+
+(If you run on older runtimes, check method availability.)
+
+10) Performance tips (practical)
+
+Use + or template literals for small concatenations; for many concatenations prefer [].push() + join('').
+
+Avoid repeated toLowerCase() in loops — compute once if possible.
+
+For very large text streaming, use streams rather than building huge in-memory strings.
+
+When comparing many strings from DB, consider indexed fields and collation rules to avoid client-side processing.
+
+11) Security checklist for strings (MERN)
+
+Validate + sanitize all user input server-side.
+
+Escape HTML when rendering raw content. In React, prefer JSX escaping; if HTML needed, sanitize (DOMPurify).
+
+For Mongo, avoid constructing queries with raw user-supplied JSON that could include operators like $where. Prefer direct field/value queries and whitelist keys.
+
+Limit input length (prevent ReDoS and huge memory usage).
+
+Use parameterized queries for SQL-like DBs and avoid string concatenation to build queries.
+
+12) Interview questions (with short answers / hints you should be able to explain)
+
+What's the difference between String (object) and string (primitive)?
+
+Primitive is immutable value; String object is a wrapper (rarely used). .valueOf() or .toString() convert.
+
+Why might s.length not match visible characters count?
+
+length counts UTF-16 code units; surrogate pairs and combining marks affect visible characters.
+
+How do you iterate user-perceived characters?
+
+Use Intl.Segmenter or grapheme-splitter; for code points use [...s] or for (const ch of s).
+
+Explain difference: slice vs substring vs substr.
+
+slice accepts negative indices; substring swaps indices if start > end; substr interprets second argument as length (deprecated).
+
+How would you prevent XSS when inserting user content into the DOM?
+
+Escape content or use automatic escaping (React JSX). If you need HTML, sanitize with trusted library.
+
+What's ReDoS and how to mitigate it?
+
+Regular Expression Denial of Service: catastrophic backtracking in regex. Mitigate by input length caps, safe regexes, timeouts, or using non-backtracking engines.
+
+How to perform case-insensitive searches in Mongo?
+
+Use regex with i flag (careful with indexing) or use collation { locale: 'en', strength: 2 } for indexed queries.
+
+Explain Unicode normalization and why it matters.
+
+Same visual characters can have different code sequences (NFC vs NFD). Normalize before comparing or storing.
+
+What's String.prototype.replace with a function used for?
+
+Dynamic replacements; compute replacement using capture groups and full match; safe for escaping templates.
+
+How does template literal tagging help with security?
+
+Tagged templates can sanitize or escape interpolated values consistently (e.g., a safe HTML tag).
+
+13) Cheat sheet / quick patterns
+
+Case-insensitive contains:
+
+s.toLowerCase().includes(q.toLowerCase())
+
+
+Safe regex search with escaping:
+
+function escapeRegex(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+const re = new RegExp(escapeRegex(user), 'i');
+
+
+Truncate with ellipsis:
+
+const ellipsize = (s, n) => [...s].length > n ? [...s].slice(0,n).join('') + '…' : s;
+
+14) Libraries and further reading (quick suggestions)
+
+Unicode and grapheme: grapheme-splitter, Intl.Segmenter
+
+Sanitization: DOMPurify (browser), sanitize-html (Node)
+
+i18n: FormatJS, i18next
+
+For safe SQL/Mongo: use ORM/ODM methods and parameterized queries; for MongoUse Mongoose with schema validation
