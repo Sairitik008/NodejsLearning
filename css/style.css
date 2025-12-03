@@ -1,0 +1,86 @@
+/* Entire page style */
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    /* dark blue gradient */
+    color: #e2e8f0;
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Game container with card style */
+.game-container {
+    background: #1e293b;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    width: 360px;
+    text-align: center;
+}
+
+/* Title */
+.title {
+    margin-bottom: 20px;
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: #38bdf8;
+    /* cyan accent */
+}
+
+/* Button container */
+.controls {
+    margin-bottom: 20px;
+}
+
+/* Base button styling */
+.btn {
+    padding: 12px 20px;
+    margin: 6px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s ease-in-out;
+}
+
+/* Primary button */
+.btn.primary {
+    background-color: #38bdf8;
+    color: #0f172a;
+}
+
+.btn.primary:hover {
+    background-color: #0ea5e9;
+}
+
+/* Secondary button */
+.btn.secondary {
+    background-color: #475569;
+    color: #f1f5f9;
+}
+
+.btn.secondary:hover {
+    background-color: #334155;
+}
+
+/* Output box */
+.output-box {
+    background: #0f172a;
+    border-radius: 8px;
+    padding: 10px;
+    height: 200px;
+    overflow-y: auto;
+    border: 1px solid #334155;
+}
+
+/* Preformatted text inside output */
+pre {
+    white-space: pre-wrap;
+    font-size: 15px;
+    margin: 0;
+    font-family: Consolas, monospace;
+    color: #a5f3fc;
+}
