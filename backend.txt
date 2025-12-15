@@ -1,0 +1,112 @@
+What a backend actually is (stop the value thinking)
+Ans:  A backend is not
+Express , APIs , Databases
+
+A backend is : A long -running program that  listens for requests ,
+executes logic , talks to external systems (DB ,cache , APIs) and return
+responses.
+
+Frontend :sends requests
+Backend : decides what to do
+Database: storing data
+
+
+2)How  Node js actually works (important)
+Node js 
+1)Runs Javascript outside the browser.
+2)Uses V8 engine (same as Chrome).
+3)Is single-threaded
+4)Uses event loop + non-blocking I/O.
+
+Why this matters
+Node handles thousands of requests without creating thousands of 
+threads.
+
+Bad backend devs don't understand this -> they block the event loop->
+server dies.
+
+
+Rule you must remember forever
+Never block the event loop (no heavy CPU work , no infinite loops ,no sync
+ I/O request path).
+
+3)Install & Verify environment (don't skip)
+
+Required :  Node js LTS (>=18)
+            npm (comes with Node)
+
+
+4) Create your first backend project
+
+mkdir backend 
+cd backend 
+npm init -y
+
+What package .json actually is 
+1) Dependency list 
+2)Project metadata
+3)Script runner
+
+If you don't understand this file , you don't understand Node.
+
+basic folder structure (discipline starts now):
+
+
+backend /
+
+    src/
+       index.js
+
+    .env
+    .gitignore
+    package.json
+
+
+.gitignore
+node_modules
+.env
+
+
+.env
+PORT =3000
+
+
+6) Your first Node program(no Express)
+src/index.js
+console.log("Backend server starting......." )
+
+
+If this doesn't work ->stop and fix it . This is the base.
+
+7) Understand process (core concept)
+Node exposes environment and system info via  process 
+
+Update src/index.js
+
+console.log("PORT" ,process.env.PORT)
+
+Open terminal and run node src/index.js->output will get-> undefined
+
+
+
+Why?
+
+Node doesn't read .env automatically.
+That's intentional. 
+
+
+
+8)Load environment variables properly:
+Intall ->dotenv using command npm install dotenv.
+
+
+import dotenv from "dotenv"
+dotenv.config();
+
+console.log("PORT", process.env.PORT)
+
+Note:this will fail unless we fix one thing in package .json  use "type":module
+node src/index.js
+
+output in terminal PORT:3000
+

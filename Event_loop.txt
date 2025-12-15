@@ -1,0 +1,174 @@
+What the Event Loop actually implies (not the buzzword version)
+
+1)First , kill a common myth
+
+Ans:  NOde js is not " single-threaded" in the naive sense 
+ Your javascript execution runs on one main threaded
+ But Node uses 👍
+ a thread pool
+ OS async APIs
+ background threads for I/O
+
+ implication:
+ JS runs on one thread , but I/O does not .
+ This distinction is everything
+ 
+2) The core promise of Node.js
+
+Node js promises this 👍
+" I will never block waiting for slow operations"
+
+That's the entire philosophy
+Instead of :
+1)wait for DB
+2)wait for file
+3)wait for network
+
+
+Node says:
+1)Start it
+2) I' ll come back when it's done.
+3)Meanwhile handle other requests.
+
+3)What the event loop actually is :
+The event loop is:
+
+A scheduler that decides what Javascript runs next on the main thread.
+
+It constantly does this:
+1) Check if JS call stack is empty
+2) Pick the next callback /task that is ready 
+3) Execute it 
+4) Repeat forever
+
+
+Your backend is basically an infinite loop:
+
+Call stack (where JS runs ):
+
+When you run Js Code:
+
+function a(){
+    b();
+}
+
+function b(){
+    console.log("Hello");
+}
+
+a();
+
+
+
+Execution of above code:
+a()->stack
+b()->stack
+console.log()->stack
+pop pop pop
+
+
+Stack must be empty  before next task runs.
+
+5) WHere async operations  gitignore
+When you do:
+
+setTimeout(()=>{
+   console.log("done")
+},1000)
+
+
+What actually happens:
+1)setTimeout is registered
+2)Timer is handled outside Js (Os/libuv)
+3)JS continues immediately
+4)After 1s, callback is queued
+5)Event loop picks it only when  stack is empty.
+
+Js does not wait Ever..
+
+
+6) Task queues(simplified but acurate)
+Node has multiple queues .You must know at least these.
+
+1)Microtask Queue
+      * process.nextTick
+      * Promise.then / catch/ finally
+
+
+
+
+2)Macrotask Queue
+* setTimeout
+* setInterval
+* setImmediate
+* I/O callbacks
+
+Rule:
+Microtasks ALWAYS run before macrotasks
+
+
+Example:
+setTimeout(()=>console.log("timeout),100);
+
+Promise.resolve().then(()=>console.log("promise))
+
+
+promise
+timeout
+
+
+Why ? Event loop rules:
+
+7) Why this matters for backend code 
+Example of Bad code (event loop blocking)
+
+app.get("/users",(req,res)=>{
+    while(true){}
+    res.send("ok);
+})
+
+What happens :
+1)Event loop is blocked
+2)No other request can be handled 
+3)Server appears "dead"
+
+Once request can kill your entire backend.
+
+8) Blocking VS Non-blocking(critical distinction)
+
+
+1)Blocking
+const data=fs.readFileSync("big.txt");
+
+2)Non-blocking:
+
+fs.readFile("big.txt",(err,data)=>{
+    //runs later
+})
+
+
+Blocking  means:
+* Event loop cannot move forward
+* All users wait.
+
+
+9)Why Node is good at APIs but bad at CPU-heavy work:
+
+Node excels at:
+1)APIs
+2)Chat Servers
+3)Dashboards
+4)Streaming
+5)I/O -heavy apps.
+
+
+Node struggles with 
+1)Image processing 
+2)Video Encoding 
+3)Cryptography
+4)ML training
+
+Because CPU-heavy work blocks the event loop:
+Solution:
+* Worker threads
+* offload to other services
